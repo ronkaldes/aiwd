@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Explorer Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+<style>
+  /* ============ Default design tokens (from variables.css / DESIGN.md) ============ */
+  :root{
+    --color-void:#0b0c0e; --color-graphite:#131416; --color-charcoal:#1f1f21;
+    --color-smoke:#3c3d3e; --color-steel:#71717a; --color-fog:#858687;
+    --color-ash:#9d9e9f; --color-chalk:#cececf; --color-snow:#ffffff;
+    --color-bone:#f2f2f2; --color-ink:#333333;
+    --color-signal-blue:#3b82f6; --color-arc-blue:#60a5fa; --color-ring-blue:#93c5fd;
+    --color-mint:#4ade80; --color-fern:#22c55e; --color-coral:#f87171;
+
+    --font-inter:'Inter',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+
+    --hairline:rgba(255,255,255,0.07);
+    --hairline-strong:rgba(255,255,255,0.08);
+    --soft-fill:rgba(255,255,255,0.05);
+
+    --page-max-width:1080px; --section-gap:96px; --card-padding:28px;
+    --radius-cards:12px; --radius-pills:10px; --radius-buttons:10px;
+    --radius-sm:8.77px; --radius-xs:5.26px;
+
+    /* card elevation: inset highlight + 0.5px ring, no cast shadows */
+    --elev-card:inset 0 1px 0 rgba(255,255,255,0.08), 0 0 0 0.5px var(--hairline);
+    --elev-panel:inset 0 1px 0 rgba(255,255,255,0.09), 0 0 0 0.5px var(--hairline);
+    --shadow-cta:rgba(0,0,0,0.1) 0px 1px 4px 0px, rgba(0,0,0,0.1) 0px 0px 1px 0px;
+    --focus-ring:rgba(59,130,246,0.25) 0px 0px 0px 1.5px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--color-void); color:var(--color-chalk);
+    font-family:var(--font-inter);
+    font-size:15px; font-weight:420; line-height:1.47; letter-spacing:-0.24px;
+    font-feature-settings:"ss01" on,"ss03" on;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:rgba(59,130,246,.30)}
+
+  /* ---------- sticky progress ---------- */
+  .topbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(11,12,14,.82);backdrop-filter:blur(6px);
+    box-shadow:0 0.5px 0 var(--hairline);
+  }
+  .topbar-inner{max-width:var(--page-max-width);margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:16px}
+  .topbar .logo{font-weight:500;font-size:14px;letter-spacing:-0.32px;color:var(--color-snow);white-space:nowrap}
+  .logo .dot{color:var(--color-signal-blue)}
+  .steps-nav{display:flex;gap:6px;flex:1;justify-content:center;flex-wrap:wrap}
+  .step-dot{
+    width:28px;height:28px;border-radius:50%;
+    box-shadow:0 0 0 0.5px var(--hairline-strong);
+    display:flex;align-items:center;justify-content:center;
+    font-size:11px;font-weight:500;color:var(--color-fog);cursor:pointer;text-decoration:none;
+    transition:all .2s ease;
+  }
+  .step-dot:hover{transform:translateY(-1px);box-shadow:0 0 0 1px var(--color-ring-blue);color:var(--color-snow)}
+  .step-dot.done{box-shadow:0 0 0 1px var(--color-mint);color:var(--color-mint)}
+  .progress-wrap{width:120px;height:4px;background:var(--color-charcoal);border-radius:2px;overflow:hidden;flex-shrink:0}
+  .progress-fill{height:100%;width:0%;border-radius:2px;background:var(--color-signal-blue);transition:width .6s cubic-bezier(.22,1,.36,1)}
+
+  /* ---------- hero ---------- */
+  .hero{padding:116px 24px 96px;text-align:center}
+  .hero-kicker{
+    display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:var(--radius-pills);
+    box-shadow:0 0 0 0.5px var(--hairline-strong);
+    color:var(--color-fog);font-size:12px;font-weight:500;letter-spacing:-0.18px;
+    margin-bottom:28px;animation:pop-in .6s ease both;
+  }
+  .hero-kicker .live{width:5px;height:5px;border-radius:50%;background:var(--color-signal-blue)}
+  .hero h1{
+    font-size:clamp(36px,5.5vw,64px);line-height:.98;font-weight:400;letter-spacing:-1.28px;
+    color:var(--color-snow);max-width:820px;margin:0 auto 22px;
+    animation:rise .8s .08s cubic-bezier(.22,1,.36,1) both;
+  }
+  .hero h1 .accent{color:var(--color-arc-blue)}
+  .hero p{
+    max-width:600px;margin:0 auto 36px;color:var(--color-fog);
+    font-size:18px;font-weight:450;line-height:1.45;letter-spacing:-0.61px;
+    animation:rise .8s .2s cubic-bezier(.22,1,.36,1) both;
+  }
+  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes pop-in{from{opacity:0;transform:scale(.85)}to{opacity:1;transform:scale(1)}}
+  .hero-ctas{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;animation:rise .8s .3s cubic-bezier(.22,1,.36,1) both}
+  .btn{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 20px;border-radius:var(--radius-buttons);
+    font-family:var(--font-inter);font-weight:400;font-size:14px;letter-spacing:-0.32px;
+    text-decoration:none;cursor:pointer;border:none;
+    transition:transform .18s ease,background .18s ease,box-shadow .18s ease;
+  }
+  .btn:active{transform:scale(.97)}
+  .btn-primary{background:var(--color-bone);color:var(--color-ink);box-shadow:var(--shadow-cta)}
+  .btn-primary:hover{transform:translateY(-1px);background:var(--color-snow)}
+  .btn-ghost{background:var(--soft-fill);color:var(--color-snow)}
+  .btn-ghost:hover{transform:translateY(-1px);background:rgba(255,255,255,.08)}
+  .zip-note{margin-top:16px;color:var(--color-steel);font-size:12px;font-weight:400;letter-spacing:-0.18px;animation:rise .8s .4s both}
+
+  /* ---------- layout ---------- */
+  .wrap{max-width:var(--page-max-width);margin:0 auto;padding:0 24px}
+  section{padding:48px 0}
+  h2{font-size:32px;font-weight:400;line-height:1.25;letter-spacing:-0.64px;color:var(--color-snow);margin-bottom:10px}
+  .sub{color:var(--color-fog);font-size:15px;font-weight:420;letter-spacing:-0.24px;max-width:620px;margin-bottom:32px}
+  .sub em{font-style:normal;color:var(--color-chalk)}
+
+  /* reveal on scroll */
+  .reveal{opacity:0;transform:translateY(20px);transition:opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1)}
+  .reveal.in{opacity:1;transform:none}
+
+  /* ---------- how it works ---------- */
+  .cards3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+  .mini-card{
+    background:var(--color-graphite);border-radius:var(--radius-cards);
+    box-shadow:var(--elev-card);padding:28px 32px;
+    transition:transform .2s ease,box-shadow .2s ease;
+  }
+  .mini-card:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 0 0.5px rgba(147,197,253,.45)}
+  .mini-card .n{
+    width:36px;height:36px;border-radius:var(--radius-sm);background:var(--soft-fill);
+    box-shadow:0 0 0 0.5px var(--hairline-strong);
+    display:flex;align-items:center;justify-content:center;font-size:15px;margin-bottom:16px;
+  }
+  .mini-card h3{font-size:15px;font-weight:500;letter-spacing:-0.24px;color:var(--color-snow);margin-bottom:6px}
+  .mini-card p{color:var(--color-fog);font-size:14px;font-weight:400;letter-spacing:-0.32px;line-height:1.43}
+
+  /* ---------- personalize ---------- */
+  .setup-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:760px){.setup-grid{grid-template-columns:1fr}}
+  .panel{background:var(--color-graphite);border-radius:var(--radius-cards);box-shadow:var(--elev-panel);padding:28px 32px}
+  .panel h3{font-size:16px;font-weight:500;letter-spacing:-0.32px;color:var(--color-snow);margin-bottom:4px}
+  .panel .hint{color:var(--color-steel);font-size:13px;font-weight:400;letter-spacing:-0.34px;line-height:1.5;margin-bottom:20px}
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:11px;font-weight:500;color:var(--color-fog);margin-bottom:5px;letter-spacing:-0.15px}
+  .field input{
+    width:100%;padding:9px 12px;border-radius:var(--radius-sm);border:none;
+    box-shadow:0 0 0 0.5px var(--hairline-strong);
+    background:var(--color-charcoal);color:var(--color-snow);
+    font-family:var(--font-inter);font-size:14px;font-weight:420;letter-spacing:-0.32px;outline:none;
+    transition:box-shadow .18s ease;
+  }
+  .field input::placeholder{color:var(--color-steel)}
+  .field input:focus{box-shadow:0 0 0 1px var(--color-ring-blue),var(--focus-ring)}
+  .field input.filled{box-shadow:0 0 0 0.5px rgba(74,222,128,.5)}
+  /* mode toggle */
+  .mode-toggle{display:flex;background:var(--color-charcoal);border-radius:var(--radius-pills);box-shadow:0 0 0 0.5px var(--hairline);padding:3px;gap:3px;margin-bottom:16px}
+  .mode-toggle button{
+    flex:1;padding:9px 12px;border:none;border-radius:8px;background:transparent;color:var(--color-fog);
+    font-family:var(--font-inter);font-weight:400;font-size:13px;letter-spacing:-0.34px;cursor:pointer;transition:all .2s ease;
+  }
+  .mode-toggle button.active{background:var(--soft-fill);color:var(--color-snow);box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)}
+  .mode-info{
+    font-size:13px;font-weight:400;letter-spacing:-0.34px;line-height:1.6;color:var(--color-fog);
+    background:var(--color-charcoal);border-radius:var(--radius-cards);box-shadow:0 0 0 0.5px var(--hairline);padding:14px 16px;
+  }
+  .mode-info strong{color:var(--color-snow);font-weight:500}
+  .mode-info code{font-family:var(--mono);font-size:12px;color:var(--color-arc-blue)}
+  .ph-status{margin-top:8px;font-size:12px;font-weight:400;color:var(--color-steel);letter-spacing:-0.18px}
+  .ph-status .ok{color:var(--color-mint);font-weight:500}
+
+  /* ---------- step sections ---------- */
+  .step-card{
+    background:var(--color-graphite);border-radius:var(--radius-cards);
+    box-shadow:var(--elev-card);
+    padding:28px 32px;margin-bottom:24px;position:relative;
+    transition:box-shadow .3s ease;
+  }
+  .step-card.completed{box-shadow:inset 0 1px 0 rgba(255,255,255,0.08),0 0 0 0.5px rgba(74,222,128,.45)}
+  .step-card.completed::after{
+    content:"● done";position:absolute;top:24px;right:28px;
+    color:var(--color-mint);font-size:10px;font-weight:500;letter-spacing:0;
+    box-shadow:0 0 0 1px var(--color-mint);border-radius:var(--radius-xs);
+    padding:2px 8px;animation:pop-in .35s ease;
+  }
+  .step-head{display:flex;align-items:center;gap:14px;margin-bottom:12px;flex-wrap:wrap}
+  .step-num{
+    width:36px;height:36px;border-radius:var(--radius-sm);flex-shrink:0;
+    background:var(--soft-fill);box-shadow:0 0 0 0.5px var(--hairline-strong);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--color-signal-blue);font-weight:500;font-size:15px;
+  }
+  .step-num.opt{color:var(--color-steel);box-shadow:0 0 0 0.5px var(--hairline)}
+  .step-head h3{font-size:18px;font-weight:500;letter-spacing:-0.61px;color:var(--color-snow)}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+  .chip{
+    font-size:11px;font-weight:500;letter-spacing:-0.15px;padding:3px 10px;border-radius:var(--radius-pills);
+    box-shadow:0 0 0 0.5px var(--hairline-strong);color:var(--color-fog);
+  }
+  .chip.time{color:var(--color-arc-blue)}
+  .step-card>p{color:var(--color-fog);font-size:14px;font-weight:400;letter-spacing:-0.32px;line-height:1.57;max-width:720px;margin-bottom:16px}
+  .step-card>p strong{color:var(--color-snow);font-weight:500}
+  .step-card>p em{font-style:italic;color:var(--color-chalk)}
+
+  /* prompt block */
+  .prompt-box{position:relative;margin:16px 0 6px}
+  .prompt-box pre{
+    background:var(--color-void);border-radius:var(--radius-cards);
+    box-shadow:0 0 0 0.5px var(--hairline-strong);
+    padding:22px;font-family:var(--mono);font-size:12.5px;line-height:1.62;letter-spacing:0;
+    white-space:pre-wrap;word-wrap:break-word;color:var(--color-chalk);max-height:420px;overflow:auto;
+  }
+  .prompt-box .label{
+    position:absolute;top:-8px;left:16px;background:var(--color-graphite);padding:0 10px;
+    font-size:9px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--color-steel);
+  }
+  .ph{color:var(--color-ash);font-style:italic;border-bottom:1px dashed var(--color-smoke)}
+  .ph.set{color:var(--color-mint);font-style:normal;border-bottom:1px dashed rgba(74,222,128,.4)}
+  .copy-btn{
+    position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:6px;
+    background:var(--soft-fill);border:none;color:var(--color-snow);
+    padding:7px 14px;border-radius:var(--radius-buttons);
+    font-family:var(--font-inter);font-size:12px;font-weight:400;letter-spacing:-0.18px;cursor:pointer;
+    transition:background .18s ease,transform .18s ease,box-shadow .18s ease;
+  }
+  .copy-btn:hover{background:rgba(255,255,255,.09);transform:translateY(-1px)}
+  .copy-btn:active{transform:scale(.95)}
+  .copy-btn.copied{background:transparent;box-shadow:0 0 0 1px var(--color-mint);color:var(--color-mint)}
+
+  /* details */
+  details{border-radius:var(--radius-cards);box-shadow:0 0 0 0.5px var(--hairline);margin-top:10px;background:var(--color-charcoal);overflow:hidden}
+  summary{
+    cursor:pointer;padding:12px 18px;font-weight:400;font-size:13px;letter-spacing:-0.34px;color:var(--color-fog);
+    list-style:none;display:flex;align-items:center;gap:10px;transition:color .2s;user-select:none;
+  }
+  summary::-webkit-details-marker{display:none}
+  summary::before{content:"▸";color:var(--color-signal-blue);transition:transform .22s ease;font-size:11px}
+  details[open] summary::before{transform:rotate(90deg)}
+  summary:hover{color:var(--color-snow)}
+  .details-body{padding:2px 20px 18px;color:var(--color-fog);font-size:13px;font-weight:400;letter-spacing:-0.34px;line-height:1.6}
+  .details-body ul{padding-left:18px;display:grid;gap:6px}
+  .details-body li strong{color:var(--color-snow);font-weight:500}
+  .details-body code{font-family:var(--mono);font-size:12px;color:var(--color-arc-blue)}
+  .details-body em{color:var(--color-chalk)}
+  .followup{position:relative;margin:12px 0}
+  .followup pre{
+    background:var(--color-void);border-radius:var(--radius-sm);box-shadow:0 0 0 0.5px var(--hairline);
+    padding:14px 96px 14px 16px;font-family:var(--mono);font-size:12px;line-height:1.6;
+    white-space:pre-wrap;color:var(--color-chalk);
+  }
+  .followup .copy-btn{top:8px;right:8px;padding:5px 12px}
+
+  /* complete button */
+  .done-row{display:flex;align-items:center;gap:14px;margin-top:20px;flex-wrap:wrap}
+  .done-btn{
+    display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border-radius:var(--radius-buttons);
+    background:var(--soft-fill);border:none;color:var(--color-fog);
+    font-family:var(--font-inter);font-weight:400;font-size:13px;letter-spacing:-0.34px;cursor:pointer;
+    transition:all .2s ease;
+  }
+  .done-btn:hover{color:var(--color-snow);background:rgba(255,255,255,.08);transform:translateY(-1px)}
+  .done-btn.on{background:transparent;box-shadow:0 0 0 1px var(--color-mint);color:var(--color-mint)}
+  .done-btn .box{
+    width:15px;height:15px;border-radius:4px;box-shadow:0 0 0 1px currentColor;
+    display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .2s;
+  }
+  .done-btn.on .box{background:var(--color-mint);color:var(--color-void)}
+  .done-row .nxt{color:var(--color-steel);font-size:12px;letter-spacing:-0.18px}
+
+  /* attach hint per mode */
+  .attach-hint{
+    display:flex;gap:10px;align-items:flex-start;
+    background:rgba(59,130,246,.06);border-radius:var(--radius-cards);
+    box-shadow:0 0 0 0.5px rgba(59,130,246,.25);
+    padding:12px 16px;font-size:13px;font-weight:400;letter-spacing:-0.34px;line-height:1.55;color:var(--color-fog);margin-top:12px;
+  }
+  .attach-hint .ico{font-size:14px;line-height:1.55}
+  .attach-hint strong{color:var(--color-snow);font-weight:500}
+  .attach-hint code{font-family:var(--mono);font-size:12px;color:var(--color-arc-blue)}
+
+  /* ---------- finale ---------- */
+  .finale{
+    text-align:center;background:var(--color-graphite);
+    border-radius:16px;box-shadow:var(--elev-panel);
+    padding:64px 30px;position:relative;overflow:hidden;
+  }
+  .finale h2{margin-bottom:12px}
+  .finale p{color:var(--color-fog);font-size:15px;font-weight:420;letter-spacing:-0.24px;max-width:540px;margin:0 auto 28px}
+  .finale.celebrate h2 .party{display:inline-block;animation:bounce .7s ease infinite alternate}
+  @keyframes bounce{from{transform:translateY(0) rotate(-6deg)}to{transform:translateY(-8px) rotate(8deg)}}
+  .confetti{position:absolute;top:-10px;font-size:15px;animation:fall linear forwards;pointer-events:none}
+  @keyframes fall{to{transform:translateY(640px) rotate(720deg);opacity:0}}
+
+  footer{
+    margin-top:48px;background:#171717;box-shadow:0 -0.5px 0 var(--hairline);
+    padding:48px 24px;text-align:center;color:var(--color-fog);font-size:12px;font-weight:400;letter-spacing:-0.18px;line-height:2;
+  }
+  footer a{color:var(--color-signal-blue);text-decoration:none}
+  footer a:hover{color:var(--color-arc-blue)}
+  footer code{font-family:var(--mono);font-size:11px;color:var(--color-ash)}
+
+  @media(max-width:640px){
+    .steps-nav{display:none}
+    .step-card,.panel,.mini-card{padding:22px 18px}
+    .hero{padding:68px 20px 56px}
+  }
+  @media(prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation:none!important;transition:none!important}
+    .reveal{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+
+<!-- ============ sticky progress bar ============ -->
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">Data Explorer <span class="dot">Lab</span></div>
+    <nav class="steps-nav" id="stepsNav">
+      <a class="step-dot" href="#step0" data-dot="0" title="Step 0 — practice data">0</a>
+      <a class="step-dot" href="#step1" data-dot="1" title="Step 1 — look at your data">1</a>
+      <a class="step-dot" href="#step2" data-dot="2" title="Step 2 — analyze & find gaps">2</a>
+      <a class="step-dot" href="#step3" data-dot="3" title="Step 3 — data-story page">3</a>
+      <a class="step-dot" href="#step4" data-dot="4" title="Step 4 — research & MVP">4</a>
+      <a class="step-dot" href="#step5" data-dot="5" title="Step 5 — build the MVP">5</a>
+      <a class="step-dot" href="#step6" data-dot="6" title="Step 6 — management deck">6</a>
+    </nav>
+    <div class="progress-wrap" title="Your progress"><div class="progress-fill" id="progressFill"></div></div>
+  </div>
+</div>
+
+<!-- ============ hero ============ -->
+<header class="hero">
+  <span class="hero-kicker"><span class="live"></span>Bring your own data · no experience needed</span>
+  <h1>From raw file to <span class="accent">real result</span> — with Claude doing the heavy lifting</h1>
+  <p>Six copy-paste steps take any CSV from "what even is this?" to insights, a data-story page, a clickable prototype, and a management deck. Fill in a few blanks below and every prompt personalizes itself.</p>
+  <div class="hero-ctas">
+    <a class="btn btn-primary" href="data-explorer-lab.zip" download>⬇ Download the kit (.zip)</a>
+    <a class="btn btn-ghost" href="#personalize">Start the journey ↓</a>
+  </div>
+  <div class="zip-note">52 KB · this guide + README, 6 lab steps, all prompts, glossary, data-dictionary &amp; brand templates</div>
+</header>
+
+<!-- ============ how it works ============ -->
+<section class="wrap">
+  <div class="reveal">
+    <h2>The whole trick, in three moves</h2>
+    <p class="sub">Every step in this lab is the exact same pattern. If you can copy and paste, you can do all of it.</p>
+  </div>
+  <div class="cards3">
+    <div class="mini-card reveal"><div class="n">✏️</div><h3>1 · Fill the blanks</h3><p>Type your file name and the question you care about once, below. Every prompt on this page updates itself live.</p></div>
+    <div class="mini-card reveal"><div class="n">📋</div><h3>2 · Copy the prompt</h3><p>Hit the copy button on any step and paste it into Claude — claude.ai in your browser, or Claude Code in a terminal.</p></div>
+    <div class="mini-card reveal"><div class="n">👀</div><h3>3 · Read what comes back</h3><p>Each step tells you what a good answer looks like, plus follow-ups to dig deeper and fixes if something goes sideways.</p></div>
+  </div>
+</section>
+
+<!-- ============ personalize ============ -->
+<section class="wrap" id="personalize">
+  <div class="reveal">
+    <h2>Set up once — takes a minute</h2>
+    <p class="sub">Two things: tell the page about <em>your</em> data so the prompts write themselves, and pick which Claude you're using so the instructions match.</p>
+  </div>
+  <div class="setup-grid">
+    <div class="panel reveal">
+      <h3>🎛️ Personalize the prompts</h3>
+      <div class="hint">Leave anything blank and the prompt keeps a [placeholder] you can edit after pasting. Saved in your browser — come back anytime.</div>
+      <div class="field"><label>Your data file name</label><input id="in-file" data-key="file" placeholder="e.g. customers_2026.csv" autocomplete="off"></div>
+      <div class="field"><label>What the data is, in one sentence</label><input id="in-desc" data-key="desc" placeholder='e.g. an export of our customers — one row per customer' autocomplete="off"></div>
+      <div class="field"><label>The outcome you care about</label><input id="in-outcome" data-key="outcome" placeholder='e.g. which customers cancelled' autocomplete="off"></div>
+      <div class="field"><label>Topic (for steps 4 &amp; 6)</label><input id="in-topic" data-key="topic" placeholder='e.g. our customers and why they cancel' autocomplete="off"></div>
+      <div class="field"><label>Your domain / market</label><input id="in-domain" data-key="domain" placeholder='e.g. customer retention for subscription software' autocomplete="off"></div>
+      <div class="field"><label>Your company name</label><input id="in-company" data-key="company" placeholder="e.g. AcmeCo" autocomplete="off"></div>
+      <div class="ph-status" id="phStatus">0 of 6 filled — prompts will show placeholders.</div>
+    </div>
+    <div class="panel reveal">
+      <h3>💬 Which Claude are you using?</h3>
+      <div class="hint">Both work for the whole lab — this just switches the "how to hand Claude your file" hints.</div>
+      <div class="mode-toggle" id="modeToggle">
+        <button data-mode="ai" class="active">🌐 Claude.ai (browser)</button>
+        <button data-mode="code">⌨️ Claude Code (terminal)</button>
+      </div>
+      <div class="mode-info" data-mode-text="ai">
+        <strong>Claude.ai — the website.</strong> In your chat, click the <strong>📎 paperclip</strong> near the message box, pick your data file, then send the prompt. If you start a brand-new chat later, attach it again. Easiest if you've never used Claude before.
+      </div>
+      <div class="mode-info" data-mode-text="code" hidden>
+        <strong>Claude Code — runs in this folder.</strong> You never attach anything: keep your file in the <code>data/</code> folder, mention its name in the prompt, and Claude reads it directly. Stay in the same session so it remembers earlier steps.
+      </div>
+      <div class="attach-hint" style="margin-top:16px"><span class="ico">💡</span><div><strong>Golden rule for every step:</strong> stay in the <strong>same conversation</strong>. The steps build on each other, and Claude only remembers what happened in the current chat.</div></div>
+      <div class="attach-hint"><span class="ico">🔒</span><div><strong>Your data, your call.</strong> If the file holds real names or emails, use an anonymized export — or generate practice data in Step 0 and play risk-free.</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ steps ============ -->
+<section class="wrap" id="steps">
+  <div class="reveal">
+    <h2>The lab — 6 steps, ~60–90 minutes</h2>
+    <p class="sub">Do them in order; each builds on the last. You can stop after any step and still have something finished to show. Step 0 is only for people without a dataset.</p>
+  </div>
+
+  <!-- STEP 0 -->
+  <div class="step-card reveal" id="step0" data-step="0">
+    <div class="step-head"><div class="step-num opt">0</div><h3>No data? Generate a practice dataset</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~3 min</span><span class="chip">Optional</span><span class="chip">New chat is fine</span></div>
+    <p>Skip this if you have a real CSV or Excel file — just drop it into the kit's <strong>data/</strong> folder. Otherwise, this prompt has Claude invent a realistic dataset <em>with hidden patterns and flaws planted on purpose</em>, plus a private answer key so you can check your work at the end.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 0</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>Generate a realistic synthetic CSV dataset I can use to practice data analysis.
+
+Topic: <span class="ph" data-ph="topic">[PICK ONE — e.g. "customers of a subscription software company"]</span>
+Outcome to hide in the data: <span class="ph" data-ph="outcome">[e.g. "which customers cancel"]</span>
+
+Requirements:
+- About 800–1,200 rows and 20–35 columns; one row = one [customer/order/ticket/...].
+- Mix of column types: identifiers, categories, dates, money, counts, scores, and a clear
+  outcome column for the outcome above.
+- Make it interesting to explore: plant 3–4 realistic hidden patterns that drive the outcome,
+  plus a handful of data-quality flaws (some missing values, one duplicate row, a few
+  impossible values, one extreme outlier).
+- 100% synthetic — no real companies or people.
+
+Give me the finished CSV file, plus a short list (for my eyes only) of the patterns
+and flaws you planted, so I can check my work later.</pre>
+    </div>
+    <details><summary>What you should get back</summary><div class="details-body"><ul>
+      <li>A <strong>downloadable CSV</strong> — save it into the kit's <code>data/</code> folder.</li>
+      <li>An <strong>answer key</strong> listing the planted patterns — keep it somewhere else and don't peek until Step 2 is done.</li>
+    </ul></div></details>
+    <div class="done-row"><button class="done-btn" data-done="0"><span class="box"></span>Mark step 0 done</button><span class="nxt">→ then Step 1</span></div>
+  </div>
+
+  <!-- STEP 1 -->
+  <div class="step-card reveal" id="step1" data-step="1">
+    <div class="step-head"><div class="step-num">1</div><h3>Look at your data</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~5 min</span><span class="chip">Needs: your data file</span><span class="chip">Starts the chat</span></div>
+    <p>You never analyze a file you don't understand. This first prompt asks Claude for the basics only — size, columns, and what one row means. Think of it as reading the label before you cook.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 1</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>I'm sharing a data file called <span class="ph" data-ph="file">[YOUR_FILE.csv]</span>. In one or two sentences, here's what
+I believe it is: <span class="ph" data-ph="desc">[e.g. "an export of our customers — each row is one customer, with their plan, activity, and whether they're still with us"]</span>.
+
+Before any analysis, just help me understand what I'm looking at:
+1. How many rows and how many columns are there?
+2. List every column with a short, plain-English explanation of what it means
+   (your best interpretation — flag any column you're unsure about).
+3. Show me 5 example rows in a readable table.
+4. In one sentence, what does a single row represent?
+
+Don't look for patterns or insights yet — I only want to understand the shape of the data.
+Explain it like I'm new to data analysis.</pre>
+    </div>
+    <div class="attach-hint" data-mode-text="ai"><span class="ico">📎</span><div><strong>Before you hit send:</strong> click the paperclip in Claude.ai and attach your file. That's all "attaching" means — handing Claude the file to read.</div></div>
+    <div class="attach-hint" data-mode-text="code" hidden><span class="ico">📁</span><div><strong>Nothing to attach:</strong> your file just needs to sit in the <code>data/</code> folder. Claude Code opens it by name.</div></div>
+    <details><summary>What a good answer looks like</summary><div class="details-body"><ul>
+      <li>Row &amp; column counts that <strong>roughly match what you expected</strong>.</li>
+      <li>Every column explained in one plain line — with honest <strong>"(unsure)" flags</strong>. Correct those in your reply; Claude remembers for the rest of the chat.</li>
+      <li>A small table of <strong>5 real rows</strong> and a one-sentence "one row = one ___". If that sentence is wrong, say so — everything later depends on it.</li>
+    </ul></div></details>
+    <details><summary>Optional follow-ups (paste as your next message)</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Group the columns into a few simple categories (like "who/what this row is", "money", "activity", "dates", "outcomes") so it's easier to hold in my head.</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Based on this data, what are the 3 most interesting questions it could answer? For each, name the outcome column I'd focus on. Help me pick one to pursue.</pre></div>
+      <p style="margin-top:8px">That second one matters — the rest of the lab keeps referring to <strong>"the outcome you care about."</strong> If you haven't picked one, this is where you do it (then update it in the setup box above 👆).</p>
+    </div></details>
+    <div class="done-row"><button class="done-btn" data-done="1"><span class="box"></span>Mark step 1 done</button><span class="nxt">→ same chat, Step 2</span></div>
+  </div>
+
+  <!-- STEP 2 -->
+  <div class="step-card reveal" id="step2" data-step="2">
+    <div class="step-head"><div class="step-num">2</div><h3>Analyze the data &amp; find the gaps</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~15 min</span><span class="chip">Same chat as Step 1</span><span class="chip">The heart of the lab</span></div>
+    <p>Now Claude acts like a <strong>senior data analyst</strong>: every flaw in the file, the headline numbers, what actually drives your outcome, and the surprises. Everything you build in Steps 3–6 stands on this answer.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 2</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>Now act as a senior data analyst and analyze <span class="ph" data-ph="file">[YOUR_FILE.csv]</span> in depth. The outcome I care
+about is <span class="ph" data-ph="outcome">[YOUR OUTCOME — e.g. "which customers cancelled", "which orders were returned"]</span>. I want four things, with the actual numbers behind
+every claim:
+
+1. DATA QUALITY — Find every problem in the data: missing values, blanks, impossible values
+   (numbers outside their sensible range, dates that can't be right), duplicates, and
+   suspicious outliers. For each one, tell me how many rows are affected and how you'd clean
+   or handle it.
+
+2. THE BIG PICTURE — What are the headline numbers for my outcome (the overall rate, average,
+   or total — whichever fits)? Then break it down by the 3–4 most natural grouping columns in
+   this data (things like category, region, size, type, time period). Call out where it's
+   surprisingly high or low.
+
+3. DRIVERS — Which columns most separate the rows where the outcome happened from the rows
+   where it didn't (or the high values from the low)? Rank the top drivers and show the
+   difference in numbers for each.
+
+4. ANOMALIES &amp; SURPRISES — Find anything counterintuitive: rows that look one way on the
+   surface but behave the opposite way, groups that break the overall pattern, or existing
+   score/label columns in the data that disagree with what actually happened.
+
+Finish with the 3 most important, non-obvious insights a manager should know, in plain
+English. Describe everything you find as patterns in THIS dataset — don't overclaim beyond it.</pre>
+    </div>
+    <details><summary>What a good answer looks like</summary><div class="details-body"><ul>
+      <li><strong>Counted flaws</strong> — every real dataset has some; finding them is normal, not failure.</li>
+      <li>A headline number you can <strong>sanity-check against what you know</strong>.</li>
+      <li><strong>Ranked drivers with numbers</strong> — "rows with low X had the outcome 3× as often", not just "X matters".</li>
+      <li>At least one <strong>genuine surprise</strong> — often your best material for Steps 3–6.</li>
+      <li>Three plain-English takeaways a manager could act on tomorrow.</li>
+    </ul></div></details>
+    <details><summary>Optional follow-ups</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Show me the 10 rows that most break the pattern — the ones that look fine on the surface but had the worst outcome. List their key numbers in a table.</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>For the group with the most surprising result, dig into WHY. Is it really that group, or is something else going on underneath?</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Turn your top 3 insights into a one-paragraph summary I could read aloud to a manager in 30 seconds.</pre></div>
+    </div></details>
+    <details><summary>If something goes wrong</summary><div class="details-body"><ul>
+      <li><strong>Numbers look off / Claude seems to guess:</strong> reply "Recompute directly from the file and show the row counts you used."</li>
+      <li><strong>No obvious outcome column:</strong> reply "There's no single outcome column — suggest 3 outcomes we could derive from these columns, and analyze the best one."</li>
+      <li><strong>Overwhelming answer:</strong> reply "Give me a short summary first — just the headlines."</li>
+    </ul></div></details>
+    <div class="done-row"><button class="done-btn" data-done="2"><span class="box"></span>Mark step 2 done</button><span class="nxt">→ same chat, Step 3</span></div>
+  </div>
+
+  <!-- STEP 3 -->
+  <div class="step-card reveal" id="step3" data-step="3">
+    <div class="step-head"><div class="step-num">3</div><h3>Build a stunning data-story page</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~10 min</span><span class="chip">Same chat as Step 2</span><span class="chip">You get: one .html file</span></div>
+    <p>Claude found the story — now it <strong>shows</strong> it: a polished one-file web page (like this one!) that opens with a double-click. No coding, no design tools. Make sure Step 2 finished with real numbers before sending this.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 3</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>Build me a single, self-contained HTML file (one file: inline CSS and JavaScript, no build step,
+works by double-clicking it) that presents the key insights from <span class="ph" data-ph="file">[YOUR_FILE.csv]</span> as a stunning,
+modern, executive "data story" web page.
+
+Include:
+- A bold hero section with the single headline finding and the one number that matters most.
+- The top drivers of the outcome shown as clean, labeled charts.
+- The breakdowns by the groupings where the differences were biggest.
+- A standout callout for the most surprising finding from the analysis — the thing nobody
+  would have guessed.
+- A short "what we should do about it" section at the end.
+
+Make it beautiful: a polished dark theme, big readable typography, smooth scrolling, animated
+number counters, and real chart visualizations (you can load a charting library like Chart.js
+from a CDN). Use the actual numbers from the analysis so the values are correct. It should look
+like something I'd be proud to put on screen in front of executives. Give me the finished HTML file.</pre>
+    </div>
+    <details><summary>What a good answer looks like + how to open it</summary><div class="details-body"><ul>
+      <li>A bold <strong>hero</strong> with your one headline number (often counting up), charts for the top drivers, and a highlighted callout for the surprise.</li>
+      <li><strong>Check the numbers</strong> against Step 2 — they should match. If not: "use the exact numbers from your Step 2 analysis above, not estimates."</li>
+      <li><strong>Claude.ai:</strong> it may preview live; download the file to keep it. <strong>Claude Code:</strong> say "save this as data-story.html in my folder", then double-click the file.</li>
+      <li>Charts need internet (they load Chart.js from a CDN); the rest works offline.</li>
+    </ul></div></details>
+    <details><summary>Optional follow-ups</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Use my brand colors and add a subtle accent to the hero. My colors: [YOUR COLORS — or paste your brand cheatsheet from reference/BRAND_CHEATSHEET_TEMPLATE.md].</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Add a small "data note" footer stating the source of the data, the row and column counts we analyzed, and the as-of date.</pre></div>
+    </div></details>
+    <div class="done-row"><button class="done-btn" data-done="3"><span class="box"></span>Mark step 3 done</button><span class="nxt">→ Step 4 (thinking, not spreadsheets)</span></div>
+  </div>
+
+  <!-- STEP 4 -->
+  <div class="step-card reveal" id="step4" data-step="4">
+    <div class="step-head"><div class="step-num">4</div><h3>Research the landscape &amp; propose an MVP</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~15 min</span><span class="chip">No data file needed</span><span class="chip">Fill in your 3 findings</span></div>
+    <p>Turn insight into action. Claude scans how the wider world handles your problem, then pitches <strong>ONE small idea</strong> — an MVP (Minimum Viable Product: the smallest version that still delivers value). Before pasting, replace the three FINDING lines with your Step 2 results — or first ask Claude: <em>"List our top 3 findings from the analysis in one line each."</em> Tip: turn on web search in Claude.ai (the globe icon) if you have it.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 4</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>I analyzed our data about <span class="ph" data-ph="topic">[YOUR TOPIC — e.g. "our customers and why they cancel"]</span>. I want to turn insight into action.
+Our key findings:
+- [FINDING 1 from Step 2]
+- [FINDING 2 from Step 2]
+- [FINDING 3 from Step 2 — ideally the surprising one]
+
+First, research how this problem is handled in the wider world. Who are the main players,
+tools, or common approaches in <span class="ph" data-ph="domain">[YOUR DOMAIN — e.g. "customer retention for subscription software"]</span>? For each, what do they offer around
+this problem, and what do their users praise or complain about?
+
+Then tell me:
+- Where does our current approach look strong, and where does it look behind?
+- Based on that landscape AND our data findings, propose ONE focused MVP — a small feature,
+  tool, or process change — we should build to act on these findings.
+
+Describe the MVP in one tight paragraph: what it is, who it's for, the single problem it
+solves, and why it would win. Keep it realistic and as minimal as possible — the smallest
+thing that delivers the value.</pre>
+    </div>
+    <details><summary>What a good answer looks like</summary><div class="details-body"><ul>
+      <li>A quick landscape briefing — what others <strong>actually do</strong> about your problem, not just names.</li>
+      <li>Honest two-sided framing, tied back to your findings — especially the surprising one.</li>
+      <li><strong>ONE focused MVP, not five.</strong> Got five? Reply: "Choose the single best one and drop the rest."</li>
+      <li>No web search? Reply: "No web access is fine — use what you know and flag anything I should double-check."</li>
+    </ul></div></details>
+    <details><summary>Optional follow-ups</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Rewrite the MVP pitch for a busy executive: 4 sentences, plain language, no jargon.</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>What would the very first version look like, and what would we deliberately leave out of v1?</pre></div>
+    </div></details>
+    <div class="done-row"><button class="done-btn" data-done="4"><span class="box"></span>Mark step 4 done</button><span class="nxt">→ same chat, Step 5</span></div>
+  </div>
+
+  <!-- STEP 5 -->
+  <div class="step-card reveal" id="step5" data-step="5">
+    <div class="step-head"><div class="step-num">5</div><h3>Build the MVP prototype</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~10 min</span><span class="chip">Same chat as Step 4</span><span class="chip">Mock data only</span></div>
+    <p>The idea becomes a thing you can <strong>click</strong>. No placeholders here — "that MVP" refers to the idea already in your chat. The prototype uses made-up data on purpose, so it's safe to share with anyone.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 5</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>Now build a working prototype of that MVP as a single self-contained HTML file (inline CSS and
+JavaScript, no backend, no real data — use a small amount of hardcoded mock data that you make up,
+shaped like the real data we analyzed).
+
+Keep it as minimal as possible: the smallest version that demonstrates the core idea end-to-end
+and feels real to click through. Show the main screen a user would live in, make the key items
+clickable, and when I click one, show WHY it's flagged/interesting and ONE recommended action.
+Make sure the mock data includes a couple of examples of the surprising pattern we found in the
+analysis, so the demo makes the insight visible.
+
+Modern, clean, professional UI. It must work by just double-clicking the file. Put a short comment
+at the very top of the file stating what it is and that all the data is fake sample data.
+Give me the finished HTML file.</pre>
+    </div>
+    <details><summary>What a good answer looks like</summary><div class="details-body"><ul>
+      <li>A clean main screen with a handful of mock items shaped like your real data.</li>
+      <li>One or two items that <strong>demonstrate your surprising finding</strong> — the best ones to point at in a demo.</li>
+      <li>Click an item → a panel explains <strong>why</strong> it's flagged and gives <strong>one</strong> recommended action.</li>
+      <li>Blank page after double-clicking? Reply: "It opened blank in my browser. Please fix it so it works by just double-clicking, all in one file."</li>
+    </ul></div></details>
+    <details><summary>Optional follow-ups</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Add a small summary bar at the top with the 3 numbers that matter most on this screen.</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Make the flagged items stand out more — add a clear badge and sort them to the top of the list.</pre></div>
+    </div></details>
+    <div class="done-row"><button class="done-btn" data-done="5"><span class="box"></span>Mark step 5 done</button><span class="nxt">→ the finale</span></div>
+  </div>
+
+  <!-- STEP 6 -->
+  <div class="step-card reveal" id="step6" data-step="6">
+    <div class="step-head"><div class="step-num">6</div><h3>Create the management deck</h3></div>
+    <div class="chips"><span class="chip time">⏱ ~15 min</span><span class="chip">Same chat as Steps 2–5</span><span class="chip">The finale</span></div>
+    <p>Tell the story to the people who can say "yes." No brand skill installed in your Claude? Fill in <strong>reference/BRAND_CHEATSHEET_TEMPLATE.md</strong> from the kit (5 min), copy its one-paragraph brief, and paste it <em>above</em> this prompt in the same message.</p>
+    <div class="prompt-box">
+      <span class="label">Prompt · Step 6</span>
+      <button class="copy-btn" data-copy>📋 Copy</button>
+      <pre>Using the brand brief above, create a single self-contained HTML slide deck for
+<span class="ph" data-ph="company">[YOUR COMPANY]</span> leadership. One HTML file, no external files, in the brand colors, font,
+and tone described in the brief. One idea per slide.
+
+The story: in one short workshop we took our own data about <span class="ph" data-ph="topic">[YOUR TOPIC]</span>, analyzed it
+with AI, and found insights worth acting on. Walk leadership through it and ask for buy-in.
+
+Cover, one idea per slide:
+1. Title + the one-line message.
+2. What we did (analyzed our own data with AI in an afternoon).
+3. The headline findings, with the real numbers.
+4. The blind spot: the surprising finding our current view of the business misses.
+5. The root-cause story behind our worst-performing group — and why it's fixable.
+6. How others handle this problem, and where we stand.
+7. The MVP we propose — what it is and who it helps.
+8. The ask: why we should invest, and the expected payoff.
+9. Close on a confident recommendation.
+
+Lead with outcomes, then the numbers.</pre>
+    </div>
+    <details><summary>Have a brand skill in Claude? Use this version instead</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Use the [YOUR-BRAND-SKILL-NAME] skill to create a management presentation deck for
+<span class="ph" data-ph="company">[YOUR COMPANY]</span> leadership.
+
+The story: in one short workshop we took our own data about <span class="ph" data-ph="topic">[YOUR TOPIC]</span>, analyzed it
+with AI, and found insights worth acting on. Walk leadership through it and ask for buy-in.
+
+Cover the same 9 slides: title + one-line message; what we did; headline findings with real
+numbers; the blind spot (the surprising finding); the root-cause story and why it's fixable;
+how others handle this; the MVP we propose; the ask and payoff; a confident close.
+
+Keep it fully on-brand and lead with outcomes, then the numbers.</pre></div>
+    </div></details>
+    <details><summary>What a good answer looks like</summary><div class="details-body"><ul>
+      <li>A 9-slide deck that reads like a confident story — <strong>not a wall of charts</strong>.</li>
+      <li>The same figures from Step 2, not new inventions. Deck forgot your numbers? Paste your key results back in and say "rebuild the deck using these exact numbers."</li>
+      <li>A standout slide on the <strong>surprising finding</strong> — the one leadership will remember.</li>
+      <li>Your colors, your font, your tone. Save the HTML file and double-click to present.</li>
+    </ul></div></details>
+    <details><summary>Optional follow-ups</summary><div class="details-body">
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>On the "ask" slide, add one rough payoff estimate: if we fixed even a quarter of the problem the data shows, what would that be worth? Show your math simply.</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Rewrite slide 1's one-line message three different ways — one for a CFO, one for a product leader, one for the CEO. Keep each under 12 words.</pre></div>
+      <div class="followup"><button class="copy-btn" data-copy>📋 Copy</button><pre>Write a 30-second spoken intro I can say out loud before slide 1, in a warm, confident tone.</pre></div>
+    </div></details>
+    <div class="done-row"><button class="done-btn" data-done="6"><span class="box"></span>Mark step 6 done</button><span class="nxt">🎉 that's the whole loop</span></div>
+  </div>
+</section>
+
+<!-- ============ finale ============ -->
+<section class="wrap">
+  <div class="finale reveal" id="finale">
+    <h2 id="finaleTitle">You'll finish with four real artifacts</h2>
+    <p id="finaleText">An analyzed dataset, a data-story page, a clickable prototype, and a management deck — from one afternoon and six pastes. Grab the kit and go.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="data-explorer-lab.zip" download>⬇ Download the kit (.zip)</a>
+      <a class="btn btn-ghost" href="#step0">Back to Step 0 ↑</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  Data Explorer Lab · everything in the zip: <a href="data-explorer-lab.zip" download>README · SETUP · GLOSSARY · lab/ (6 steps) · prompts/ · data/ templates · reference/ brand template</a><br>
+  Works with claude.ai (attach your file 📎) or Claude Code (drop it in <code>data/</code>). Your inputs on this page stay in your browser only.
+</footer>
+
+<script>
+(function(){
+  "use strict";
+  var LS_VALS="del-values", LS_DONE="del-done", LS_MODE="del-mode";
+  function load(k,d){try{var v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}}
+  function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+
+  /* ---------- placeholder substitution ---------- */
+  var defaults={};
+  document.querySelectorAll(".ph").forEach(function(el){
+    var k=el.dataset.ph;
+    if(!(k in defaults)) defaults[k]=el.textContent;
+    else el.dataset.def=el.textContent; /* keep per-instance default */
+    if(!el.dataset.def) el.dataset.def=el.textContent;
+  });
+  var inputs=document.querySelectorAll("input[data-key]");
+  var vals=load(LS_VALS,{});
+  function apply(){
+    document.querySelectorAll(".ph").forEach(function(el){
+      var k=el.dataset.ph, v=(vals[k]||"").trim();
+      if(v){el.textContent=v;el.classList.add("set");}
+      else{el.textContent=el.dataset.def;el.classList.remove("set");}
+    });
+    var filled=0;
+    inputs.forEach(function(inp){
+      var v=(vals[inp.dataset.key]||"").trim();
+      inp.classList.toggle("filled",!!v);
+      if(v)filled++;
+    });
+    var st=document.getElementById("phStatus");
+    st.innerHTML = filled===inputs.length
+      ? '<span class="ok">All set!</span> Every prompt below now speaks your language.'
+      : filled+" of "+inputs.length+" filled — blank ones stay as [placeholders] you can edit after pasting.";
+  }
+  inputs.forEach(function(inp){
+    inp.value=vals[inp.dataset.key]||"";
+    inp.addEventListener("input",function(){vals[inp.dataset.key]=inp.value;save(LS_VALS,vals);apply();});
+  });
+  apply();
+
+  /* ---------- mode toggle ---------- */
+  var mode=load(LS_MODE,"ai");
+  function setMode(m){
+    mode=m;save(LS_MODE,m);
+    document.querySelectorAll("#modeToggle button").forEach(function(b){b.classList.toggle("active",b.dataset.mode===m)});
+    document.querySelectorAll("[data-mode-text]").forEach(function(el){el.hidden=el.dataset.modeText!==m});
+  }
+  document.querySelectorAll("#modeToggle button").forEach(function(b){
+    b.addEventListener("click",function(){setMode(b.dataset.mode)});
+  });
+  setMode(mode);
+
+  /* ---------- copy buttons ---------- */
+  document.querySelectorAll("[data-copy]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var pre=btn.parentElement.querySelector("pre");
+      var txt=pre.innerText;
+      function ok(){
+        btn.classList.add("copied");btn.textContent="✓ Copied!";
+        setTimeout(function(){btn.classList.remove("copied");btn.textContent="📋 Copy";},1800);
+      }
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        navigator.clipboard.writeText(txt).then(ok,function(){fallback()});
+      }else fallback();
+      function fallback(){
+        var ta=document.createElement("textarea");ta.value=txt;
+        ta.style.position="fixed";ta.style.opacity="0";document.body.appendChild(ta);
+        ta.select();try{document.execCommand("copy");ok();}catch(e){}
+        document.body.removeChild(ta);
+      }
+    });
+  });
+
+  /* ---------- progress / done ---------- */
+  var TOTAL=7;
+  var done=load(LS_DONE,{});
+  function refresh(){
+    var n=0;
+    for(var i=0;i<TOTAL;i++){
+      var isOn=!!done[i];
+      if(isOn)n++;
+      var card=document.querySelector('[data-step="'+i+'"]');
+      if(card)card.classList.toggle("completed",isOn);
+      var btn=document.querySelector('[data-done="'+i+'"]');
+      if(btn){btn.classList.toggle("on",isOn);
+        btn.querySelector(".box").textContent=isOn?"✓":"";}
+      var dot=document.querySelector('[data-dot="'+i+'"]');
+      if(dot)dot.classList.toggle("done",isOn);
+    }
+    document.getElementById("progressFill").style.width=Math.round(n/TOTAL*100)+"%";
+    if(n===TOTAL)celebrate();
+  }
+  document.querySelectorAll("[data-done]").forEach(function(btn){
+    btn.addEventListener("click",function(){
+      var i=btn.dataset.done;
+      done[i]=!done[i];save(LS_DONE,done);refresh();
+    });
+  });
+  refresh();
+
+  /* ---------- celebrate ---------- */
+  var partied=false;
+  function celebrate(){
+    var f=document.getElementById("finale");
+    f.classList.add("celebrate");
+    document.getElementById("finaleTitle").innerHTML='<span class="party">🎉</span> You did the whole loop!';
+    document.getElementById("finaleText").textContent="Raw data → cleaned → real insight → MVP → pitched to leadership. Now try the same loop on your next dataset — it works on all of them.";
+    if(partied)return;partied=true;
+    var glyphs=["🎉","✨","📊","🎊","💡"];
+    for(var i=0;i<26;i++){
+      var s=document.createElement("span");
+      s.className="confetti";
+      s.textContent=glyphs[i%glyphs.length];
+      s.style.left=(4+Math.random()*92)+"%";
+      s.style.animationDuration=(2.4+Math.random()*2.4)+"s";
+      s.style.animationDelay=(Math.random()*0.9)+"s";
+      f.appendChild(s);
+      setTimeout(function(el){return function(){el.remove()}}(s),6200);
+    }
+  }
+
+  /* ---------- scroll reveal ---------- */
+  if("IntersectionObserver" in window){
+    var io=new IntersectionObserver(function(entries){
+      entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add("in");io.unobserve(e.target);}});
+    },{threshold:.12,rootMargin:"0px 0px -40px 0px"});
+    document.querySelectorAll(".reveal").forEach(function(el){io.observe(el)});
+  }else{
+    document.querySelectorAll(".reveal").forEach(function(el){el.classList.add("in")});
+  }
+})();
+</script>
+</body>
+</html>
